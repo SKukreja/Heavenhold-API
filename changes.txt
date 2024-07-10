@@ -1,0 +1,15 @@
+----- 1.0.3 (04 August 2020) -----
+Tweaked: Unnecessary settings removed
+Tweaked: Page settings
+
+----- 1.0.2 (04 August 2020) -----
+Fixed: Ajax doc search
+New: Theme Settings > Privacy settings
+
+----- 1.0.1 (01 August 2020) -----
+New: Help Desk Homepage demo
+New: bbPress Forum for giving support
+Fixed: Theme Settings > Color Scheme
+
+----- 0.0.7 (27 July 2020) -----
+Initial release on Themeforest
