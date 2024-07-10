@@ -14,8 +14,8 @@ The source code for Heavenhold.com's headless WordPress back-end theme
 
 ## Credits
 List of contributors:
-- [Sumit Kukreja](kukreja.com)
+- [Sumit Kukreja](https://kukreja.net)
 
 ## License
 
-MIT license @ [Sumit Kukreja](kukreja.net)
+MIT license @ [Sumit Kukreja](https://kukreja.net)
