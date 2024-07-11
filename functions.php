@@ -19,6 +19,10 @@ add_post_type_support( 'articles', array('title', 'thumbnail', 'editor', 'commen
 add_post_type_support( 'guides', array('title', 'thumbnail', 'editor', 'comments') );
 add_post_type_support( 'banners', array('title', 'thumbnail', 'comments') );
 
+add_filter( 'graphql_connection_max_query_amount', function ( int $max_amount, $source, array $args, $context, $info ) {
+	return 200;
+}, 10, 5 );
+
 /*
 add_action('acf/save_post', 'discord_update_notification', 5);
 function discord_update_notification( $post_ID ) {
