@@ -25,7 +25,85 @@ add_filter( 'graphql_connection_max_query_amount', function ( int $max_amount, $
 	return 200;
 }, 10, 5 );
 
+function rank_stats() {
 
+    $args = array(
+        'post_type'   => 'heroes',
+        'numberposts'   => -1
+    );
+
+    $the_query = new WP_Query($args);
+
+    // Arrays to hold all the stats
+    $all_atk = array();
+    $all_hp = array();
+    $all_def = array();
+    $all_crit = array();
+    $all_heal = array();
+	$all_dr = array();
+
+    // Collect all stats
+    if ($the_query->have_posts()):
+        while ($the_query->have_posts()): $the_query->the_post();
+
+            $post_id = get_the_ID();
+
+            $atk = get_field('stat_fields_atk');
+            $hp = get_field('stat_fields_hp');
+            $def = get_field('stat_fields_def');
+            $crit = get_field('stat_fields_crit');
+            $heal = get_field('stat_fields_heal');
+			$dr = get_field('stat_fields_damage_reduction');
+
+            $all_atk[$post_id] = $atk;
+            $all_hp[$post_id] = $hp;
+            $all_def[$post_id] = $def;
+            $all_crit[$post_id] = $crit;
+            $all_heal[$post_id] = $heal;
+			$all_dr[$post_id] = $dr;
+
+        endwhile;
+    endif;
+
+    // Function to rank the stats
+    function rank_array($array) {
+        arsort($array); // Sort in descending order
+        $rank = 1;
+        $ranks = array();
+        foreach ($array as $id => $value) {
+            $ranks[$id] = $rank++;
+        }
+        return $ranks;
+    }
+
+    // Get the ranks
+    $atk_ranks = rank_array($all_atk);
+    $hp_ranks = rank_array($all_hp);
+    $def_ranks = rank_array($all_def);
+    $crit_ranks = rank_array($all_crit);
+    $heal_ranks = rank_array($all_heal);
+	$dr_ranks = rank_array($all_dr);
+
+    // Update the posts with their ranks
+    if ($the_query->have_posts()):
+        while ($the_query->have_posts()): $the_query->the_post();
+
+            $post_id = get_the_ID();
+
+            update_post_meta($post_id, 'stat_fields_atk_rank', $atk_ranks[$post_id]);
+            update_post_meta($post_id, 'stat_fields_hp_rank', $hp_ranks[$post_id]);
+            update_post_meta($post_id, 'stat_fields_def_rank', $def_ranks[$post_id]);
+            update_post_meta($post_id, 'stat_fields_crit_rank', $crit_ranks[$post_id]);
+            update_post_meta($post_id, 'stat_fields_heal_rank', $heal_ranks[$post_id]);
+			update_post_meta($post_id, 'stat_fields_dr_rank', $dr_ranks[$post_id]);
+			update_post_meta($post_id, 'stat_fields_hero_count', count($all_atk));
+			
+        endwhile;
+    endif;
+
+}
+
+add_action('save_post_heroes', 'rank_stats', 10, 1);
 
 /*
 add_action('acf/save_post', 'discord_update_notification', 5);
