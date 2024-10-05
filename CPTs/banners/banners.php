@@ -10,16 +10,16 @@ class Banners {
   function custom_post_type() {
 
     $labels = array(
-      'name'                  => _x( 'Banners', 'Post Type General Name', 'text_domain' ),
-      'singular_name'         => _x( 'Banner', 'Post Type Singular Name', 'text_domain' ),
-      'menu_name'             => __( 'Banners', 'text_domain' ),
-      'name_admin_bar'        => __( 'Banners', 'text_domain' ),
-      'all_items'             => __( 'See All', 'text_domain' )
+      'name'                  => _x( 'Banners', 'Post Type General Name', 'heavenhold' ),
+      'singular_name'         => _x( 'Banner', 'Post Type Singular Name', 'heavenhold' ),
+      'menu_name'             => __( 'Banners', 'heavenhold' ),
+      'name_admin_bar'        => __( 'Banners', 'heavenhold' ),
+      'all_items'             => __( 'See All', 'heavenhold' )
     );
 
     $args = array(
-      'label'                 => __( 'Banners', 'text_domain' ),
-      'description'           => __( 'Banners', 'text_domain' ),
+      'label'                 => __( 'Banners', 'heavenhold' ),
+      'description'           => __( 'Banners', 'heavenhold' ),
       'labels'                => $labels,
       'supports'              => array('title', 'excerpt', 'revisions'),
       'taxonomies'            => array('banner_categories'),
@@ -31,9 +31,9 @@ class Banners {
       'show_in_rest'          => true, 
       'show_in_admin_bar'     => true,
       'show_in_nav_menus'     => true,
-      'show_in_graphql' => true, # Set to false if you want to exclude this type from the GraphQL Schema
-      'graphql_single_name' => 'banner', 
-      'graphql_plural_name' => 'banners',
+      #'show_in_graphql' => true, # Set to false if you want to exclude this type from the GraphQL Schema
+      #'graphql_single_name' => 'banner', 
+      #'graphql_plural_name' => 'banners',
       'rewrite'               => array('slug' => 'banners', 'with_front' => true, 'pages' => true,'feeds' => true),
       'can_export'            => true,
       'has_archive'           => true,

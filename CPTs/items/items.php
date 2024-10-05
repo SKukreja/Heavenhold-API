@@ -10,16 +10,16 @@ class Items {
   function custom_post_type() {
 
     $labels = array(
-      'name'                  => _x( 'Equipment', 'Post Type General Name', 'text_domain' ),
-      'singular_name'         => _x( 'Item', 'Post Type Singular Name', 'text_domain' ),
-      'menu_name'             => __( 'Equipment', 'text_domain' ),
-      'name_admin_bar'        => __( 'Equipment', 'text_domain' ),
-      'all_items'             => __( 'See All', 'text_domain' )
+      'name'                  => _x( 'Equipment', 'Post Type General Name', 'heavenhold' ),
+      'singular_name'         => _x( 'Item', 'Post Type Singular Name', 'heavenhold' ),
+      'menu_name'             => __( 'Equipment', 'heavenhold' ),
+      'name_admin_bar'        => __( 'Equipment', 'heavenhold' ),
+      'all_items'             => __( 'See All', 'heavenhold' )
     );
 
     $args = array(
-      'label'                 => __( 'Equipment', 'text_domain' ),
-      'description'           => __( 'Equipment', 'text_domain' ),
+      'label'                 => __( 'Equipment', 'heavenhold' ),
+      'description'           => __( 'Equipment', 'heavenhold' ),
       'labels'                => $labels,
       'supports'              => array('title', 'excerpt', 'revisions'),
       'taxonomies'            => array('item_categories'),

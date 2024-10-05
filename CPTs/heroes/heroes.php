@@ -10,16 +10,16 @@ class Heroes {
   function custom_post_type() {
 
     $labels = array(
-      'name'                  => _x( 'Heroes', 'Post Type General Name', 'text_domain' ),
-      'singular_name'         => _x( 'Hero', 'Post Type Singular Name', 'text_domain' ),
-      'menu_name'             => __( 'Heroes', 'text_domain' ),
-      'name_admin_bar'        => __( 'Heroes', 'text_domain' ),
-      'all_items'             => __( 'See All', 'text_domain' )
+      'name'                  => _x( 'Heroes', 'Post Type General Name', 'heavenhold' ),
+      'singular_name'         => _x( 'Hero', 'Post Type Singular Name', 'heavenhold' ),
+      'menu_name'             => __( 'Heroes', 'heavenhold' ),
+      'name_admin_bar'        => __( 'Heroes', 'heavenhold' ),
+      'all_items'             => __( 'See All', 'heavenhold' )
     );
 
     $args = array(
-      'label'                 => __( 'Heroes', 'text_domain' ),
-      'description'           => __( 'Heroes', 'text_domain' ),
+      'label'                 => __( 'Heroes', 'heavenhold' ),
+      'description'           => __( 'Heroes', 'heavenhold' ),
       'labels'                => $labels,
       'supports'              => array('title', 'excerpt', 'revisions'),
       'taxonomies'            => array('hero_categories'),
@@ -39,7 +39,7 @@ class Heroes {
       'has_archive'           => true,
       'exclude_from_search'   => false,
       'publicly_queryable'    => true,
-      'capability_type'     => 'heroe',
+      'capability_type'     => 'heroes',
       'map_meta_cap'        => true,
     );
 
