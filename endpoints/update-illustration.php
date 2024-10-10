@@ -1,4 +1,4 @@
-<?php 
+<?php
 add_action('rest_api_init', function () {
     register_rest_route('heavenhold/v1', '/update-illustration', array(
         'methods'             => 'POST',
@@ -18,9 +18,10 @@ function heroes_update_illustration($request) {
     $y = $request->get_param('y');
     $width = $request->get_param('width');
     $height = $request->get_param('height');
+    $confirmed = $request->get_param('confirmed');
 
     // Validate inputs
-    if (empty($hero_id) || empty($image) || empty($width) || empty($height) || empty($x) || empty($y) || empty($region)) {
+    if (!isset($hero_id) || !isset($image) || !isset($width) || !isset($height) || !isset($x) || !isset($y) || !isset($region)) {
         return new WP_Error('invalid_data', 'Hero ID, image, width, and height are required', array('status' => 400));
     }
 
@@ -30,45 +31,55 @@ function heroes_update_illustration($request) {
         return new WP_Error('invalid_post', 'Invalid hero ID', array('status' => 404));
     }
 
-    // Prepare a new pending revision
-    $post_data = array(
-        'post_author'       => get_current_user_id(),
-        'post_date'         => current_time('mysql'),
-        'post_date_gmt'     => current_time('mysql', 1),
-        'post_content'      => $published_post->post_content,
-        'post_title'        => $published_post->post_title,
-        'post_status'       => 'pending',
-        'comment_status'    => $published_post->comment_status,
-        'ping_status'       => $published_post->ping_status,
-        'post_name'         => $published_post->post_name,
-        'post_parent'       => $published_post->post_parent,
-        'post_type'         => $published_post->post_type,
-        'post_mime_type'    => 'pending-revision',
-    );
-    $wpdb->insert($wpdb->posts, $post_data);
-    $revision_id = $wpdb->insert_id;
+    // Decide whether to update the post directly or create a revision
+    if (!$confirmed) {
+        // Create a new pending revision
+        $post_data = array(
+            'post_author'       => get_current_user_id(),
+            'post_date'         => current_time('mysql'),
+            'post_date_gmt'     => current_time('mysql', 1),
+            'post_content'      => $published_post->post_content,
+            'post_title'        => $published_post->post_title,
+            'post_status'       => 'pending',
+            'comment_status'    => $published_post->comment_status,
+            'ping_status'       => $published_post->ping_status,
+            'post_name'         => $published_post->post_name,
+            'post_parent'       => $published_post->post_parent,
+            'post_type'         => $published_post->post_type,
+            'post_mime_type'    => 'pending-revision',
+        );
 
-    if (!$revision_id) {
-        return new WP_Error('db_error', 'Failed to create revision', array('status' => 500));
-    }
+        // Insert the new revision into wp_posts
+        $wpdb->insert($wpdb->posts, $post_data);
+        $revision_id = $wpdb->insert_id;
 
-    // Add to wp_postmeta: _rvy_base_post_id
-    add_post_meta($revision_id, '_rvy_base_post_id', $hero_id);
+        if (!$revision_id) {
+            return new WP_Error('db_error', 'Failed to create revision', array('status' => 500));
+        }
 
-    // Update published post meta: _rvy_has_revisions
-    update_post_meta($hero_id, '_rvy_has_revisions', 1);
+        // Add to wp_postmeta: _rvy_base_post_id
+        add_post_meta($revision_id, '_rvy_base_post_id', $hero_id);
 
-    // Copy postmeta from the original hero post to the new revision
-    $meta_data = $wpdb->get_results($wpdb->prepare(
-        "SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id = %d",
-        $hero_id
-    ));
-    foreach ($meta_data as $meta) {
-        $wpdb->insert($wpdb->postmeta, array(
-            'post_id'    => $revision_id,
-            'meta_key'   => $meta->meta_key,
-            'meta_value' => $meta->meta_value,
+        // Update published post meta: _rvy_has_revisions
+        update_post_meta($hero_id, '_rvy_has_revisions', 1);
+
+        // Copy postmeta from the original hero post to the new revision
+        $meta_data = $wpdb->get_results($wpdb->prepare(
+            "SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id = %d",
+            $hero_id
         ));
+        foreach ($meta_data as $meta) {
+            $wpdb->insert($wpdb->postmeta, array(
+                'post_id'    => $revision_id,
+                'meta_key'   => $meta->meta_key,
+                'meta_value' => $meta->meta_value,
+            ));
+        }
+
+        $target_post_id = $revision_id;
+    } else {
+        // Update the published post directly
+        $target_post_id = $hero_id;
     }
 
     // Handle image upload (this will be used for 'illustration')
@@ -92,18 +103,18 @@ function heroes_update_illustration($request) {
         'post_title'     => basename($uploaded_file['file']),
         'post_content'   => '',
         'post_status'    => 'inherit'
-    ), $uploaded_file['file'], $revision_id);
+    ), $uploaded_file['file'], $target_post_id);
 
     if (is_wp_error($original_attachment_id)) {
         return new WP_Error('attachment_error', $original_attachment_id->get_error_message(), array('status' => 500));
     }
 
-    // Generate metadata for the uploaded image and update attachment (original)
+    // Generate metadata for the uploaded image and update the attachment
     $attachment_metadata = wp_generate_attachment_metadata($original_attachment_id, $uploaded_file['file']);
     wp_update_attachment_metadata($original_attachment_id, $attachment_metadata);
 
     // Add the original image to 'illustrations' repeater field
-    $existing_illustrations = get_field('illustrations', $revision_id);
+    $existing_illustrations = get_field('illustrations', $target_post_id);
 
     if (!$existing_illustrations) {
         $existing_illustrations = array();
@@ -117,7 +128,7 @@ function heroes_update_illustration($request) {
     $existing_illustrations[] = $new_row;
 
     // Update the repeater field with the new row appended
-    update_field('illustrations', $existing_illustrations, $revision_id);
+    update_field('illustrations', $existing_illustrations, $target_post_id);
 
     // If the region is 'Global', create a cropped version as a new attachment
     if ($region === 'Global') {
@@ -135,7 +146,7 @@ function heroes_update_illustration($request) {
                 'post_title'     => basename($cropped_file),
                 'post_content'   => '',
                 'post_status'    => 'inherit'
-            ), $cropped_file, $revision_id);
+            ), $cropped_file, $target_post_id);
 
             if (is_wp_error($cropped_attachment_id)) {
                 return new WP_Error('cropped_attachment_error', $cropped_attachment_id->get_error_message(), array('status' => 500));
@@ -155,11 +166,11 @@ function heroes_update_illustration($request) {
             ));
 
             // Update the 'illustration' field with the cropped image's attachment ID
-            update_field('illustration', $cropped_attachment_id, $revision_id);
+            update_field('illustration', $cropped_attachment_id, $target_post_id);
         } else {
             return new WP_Error('crop_error', 'Image cropping failed', array('status' => 500));
         }
     }
 
-    return array('success' => true, 'revision_id' => $revision_id);
+    return array('success' => true, 'version' => '1.0.0');
 }
