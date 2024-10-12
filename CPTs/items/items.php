@@ -21,7 +21,7 @@ class Items {
       'label'                 => __( 'Equipment', 'heavenhold' ),
       'description'           => __( 'Equipment', 'heavenhold' ),
       'labels'                => $labels,
-      'supports'              => array('title', 'excerpt', 'revisions'),
+      'supports'              => array('title', 'excerpt', 'thumbnail', 'revisions'),
       'taxonomies'            => array('item_categories'),
       'hierarchical'          => false,
       'public'                => true,
