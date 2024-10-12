@@ -11,15 +11,4 @@
  *
  * @package heavenhold
  */
-$padding = "";
-
-while ( have_posts() ) : the_post();
-    ?>
-    <section class="blog_area">
-
-                    <?php
-                    the_content();
-                    ?>
-    </section>
-    <?php
-endwhile; // End of the loop.
+wp_redirect(admin_url());

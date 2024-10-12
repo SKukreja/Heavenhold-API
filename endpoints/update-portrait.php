@@ -24,7 +24,7 @@ function heroes_update_portrait($request) {
 
     // Get the published post
     $published_post = get_post($hero_id);
- 
+
     if (!$published_post || $published_post->post_type != 'heroes') {
         return new WP_Error('invalid_post', 'Invalid hero ID', array('status' => 404));
     }
@@ -53,6 +53,8 @@ function heroes_update_portrait($request) {
         $revision_id = $wpdb->insert_id;
 
         if (!$revision_id) {
+            // Log to error_log
+            error_log('Failed to create revision');
             return new WP_Error('db_error', 'Failed to create revision', array('status' => 500));
         }
 

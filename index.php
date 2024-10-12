@@ -11,8 +11,5 @@
  *
  * @package heavenhold
  */
-?>
-<section class="doc_blog_classic_area sec_pad">
-</section>
-
-<?php
+wp_redirect(admin_url());
+exit;
