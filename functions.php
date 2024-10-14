@@ -25,6 +25,7 @@ require_once dirname(__FILE__) . '/endpoints/update-portrait.php';
 require_once dirname(__FILE__) . '/endpoints/update-bio.php';
 require_once dirname(__FILE__) . '/endpoints/update-illustration.php';
 require_once dirname(__FILE__) . '/endpoints/update-stats.php';
+require_once dirname(__FILE__) . '/endpoints/update-weapon.php';
 require_once dirname(__FILE__) . '/endpoints/add-new-hero.php';
 
 add_filter( 'graphql_connection_max_query_amount', function ( int $max_amount, $source, array $args, $context, $info ) {
