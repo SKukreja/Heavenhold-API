@@ -30,11 +30,12 @@ function items_update_weapon($request) {
     $limit_break_5_option = $request->get_param('limit_break_5_option');
     $limit_break_5_value = $request->get_param('limit_break_5_value');
     $engraving_options = $request->get_param('engraving_options');
+    $max_lines = $request->get_param('max_lines');
     $confirmed = $request->get_param('confirmed');
 
     // Validate inputs
     if (!isset($item_id) || !isset($name)) {
-        return new WP_Error('invalid_data', 'Hero ID, image, width, and height are required', array('status' => 400));
+        return new WP_Error('invalid_data', 'Weapon ID and name are required', array('status' => 400));
     }
 
     // Get the published hero post
@@ -88,12 +89,12 @@ function items_update_weapon($request) {
         add_post_meta($revision_id, '_rvy_base_post_id', $item_id);
 
         // Update published post meta: _rvy_has_revisions
-        update_post_meta($hero_id, '_rvy_has_revisions', 1);
+        update_post_meta($item_id, '_rvy_has_revisions', 1);
 
         // Copy postmeta from the original hero post to the new revision
         $meta_data = $wpdb->get_results($wpdb->prepare(
             "SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id = %d",
-            $hero_id
+            $item_id
         ));
         foreach ($meta_data as $meta) {
             $wpdb->insert($wpdb->postmeta, array(
@@ -106,7 +107,7 @@ function items_update_weapon($request) {
         $target_post_id = $revision_id;
     } else {
         // Update the published post directly
-        $target_post_id = $hero_id;
+        $target_post_id = $item_id;
     }
 
     // Get hero from heroes post type where title is equal to $hero
@@ -117,23 +118,25 @@ function items_update_weapon($request) {
     $hero_relationship[] = $hero_id;
 
     // Update the repeater field with the new row appended
+    update_field('max_level', 100, $target_post_id);
     update_field('rarity', $rarity, $target_post_id);
     update_field('weapon_type', $weapon_type, $target_post_id);
-    update_field('exclusive', $exclusive, $target_post_id);
-    update_field('hero', $hero_relationship, $target_post_id);
+    update_field('exclusive', $exclusive, $target_post_id);    
     update_field('exclusive_effects', $exclusive_effects, $target_post_id);
     update_field('min_dps', $min_dps, $target_post_id);
-    update_field('max_dps', $max_dps, $target_post_id);
+    update_field('dps', $max_dps, $target_post_id);
     update_field('weapon_skill_name', $weapon_skill_name, $target_post_id);
     update_field('weapon_skill_atk', $weapon_skill_atk, $target_post_id);
     update_field('weapon_skill_regen_time', $weapon_skill_regen_time, $target_post_id);
     update_field('weapon_skill_description', $weapon_skill_description, $target_post_id);
     update_field('weapon_skill_chain', $weapon_skill_chain, $target_post_id);
-    update_field('main_option', $main_option, $target_post_id);
-    update_field('sub_option', $sub_option, $target_post_id);
-    update_field('limit_break_5_option', $limit_break_5_option, $target_post_id);
-    update_field('limit_break_5_value', $limit_break_5_value, $target_post_id);
+    update_field('main_options', $main_option, $target_post_id);
+    update_field('sub_options', $sub_option, $target_post_id);
+    update_field('lb5_option', $limit_break_5_option, $target_post_id);
+    update_field('lb5_value', $limit_break_5_value, $target_post_id);
     update_field('engraving', $engraving_options, $target_post_id);
+    update_field('max_lines', $max_lines, $target_post_id);
+    update_field('hero', $hero_relationship, $target_post_id);
     
     return array('success' => true, 'version' => '1.0.0');
 }
