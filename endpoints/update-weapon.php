@@ -3,7 +3,7 @@ add_action('rest_api_init', function () {
     register_rest_route('heavenhold/v1', '/update-weapon', array(
         'methods'             => 'POST',
         'callback'            => 'items_update_weapon',
-        'permission_callback' => '__return_true', // Adjust this according to your permission requirements
+        'permission_callback' => '__return_true',
     ));
 });
 
@@ -33,95 +33,54 @@ function items_update_weapon($request) {
     $max_lines = $request->get_param('max_lines');
     $confirmed = $request->get_param('confirmed');
 
-    // Validate inputs
     if (!isset($item_id) || !isset($name)) {
         return new WP_Error('invalid_data', 'Weapon ID and name are required', array('status' => 400));
     }
 
-    // Get the published hero post
+    // Retrieve or create the post
     $published_post = get_post($item_id);
     if (!$published_post || $published_post->post_type != 'items') {
-        // Create the post
         $post_data = array(
-            'post_author'       => get_current_user_id(),
-            'post_date'         => current_time('mysql'),
-            'post_date_gmt'     => current_time('mysql', 1),
-            'post_content'      => '',
-            'post_title'        => $name,
-            'post_status'       => 'publish',
-            'comment_status'    => 'closed',
-            'ping_status'       => 'closed',
-            'post_name'         => sanitize_title($name),
-            'post_type'         => 'items',
+            'post_author' => get_current_user_id(),
+            'post_date'   => current_time('mysql'),
+            'post_title'  => $name,
+            'post_status' => 'publish',
+            'post_type'   => 'items',
         );
         $wpdb->insert($wpdb->posts, $post_data);
-        $added_id = $wpdb->insert_id;
-        $published_post = get_post($added_id);
+        $item_id = $wpdb->insert_id;
+        $published_post = get_post($item_id);
     }
 
-    // Decide whether to update the post directly or create a revision
-    if (!$confirmed) {
-        // Create a new pending revision
-        $post_data = array(
-            'post_author'       => get_current_user_id(),
-            'post_date'         => current_time('mysql'),
-            'post_date_gmt'     => current_time('mysql', 1),
-            'post_content'      => $published_post->post_content,
-            'post_title'        => $published_post->post_title,
-            'post_status'       => 'pending',
-            'comment_status'    => $published_post->comment_status,
-            'ping_status'       => $published_post->ping_status,
-            'post_name'         => $published_post->post_name,
-            'post_parent'       => $published_post->post_parent,
-            'post_type'         => $published_post->post_type,
-            'post_mime_type'    => 'pending-revision',
-        );
+    $target_post_id = $confirmed ? $item_id : create_revision($published_post);
 
-        // Insert the new revision into wp_posts
-        $wpdb->insert($wpdb->posts, $post_data);
-        $revision_id = $wpdb->insert_id;
+    error_log('1');
 
-        if (!$revision_id) {
-            return new WP_Error('db_error', 'Failed to create revision', array('status' => 500));
+    // Process Main Options
+    process_repeater_field($main_option, 'main_options', $target_post_id);
+
+    error_log('2');
+
+    // Process Sub Options
+    process_repeater_field($sub_option, 'sub_stats', $target_post_id);
+
+    error_log('3');
+
+    // Handle Engraving Options
+    if (isset($engraving_options)) {
+        if (!isset($engraving_options[0]) || !is_array($engraving_options[0])) {
+            $engraving_options = [$engraving_options];
         }
-
-        // Add to wp_postmeta: _rvy_base_post_id
-        add_post_meta($revision_id, '_rvy_base_post_id', $item_id);
-
-        // Update published post meta: _rvy_has_revisions
-        update_post_meta($item_id, '_rvy_has_revisions', 1);
-
-        // Copy postmeta from the original hero post to the new revision
-        $meta_data = $wpdb->get_results($wpdb->prepare(
-            "SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id = %d",
-            $item_id
-        ));
-        foreach ($meta_data as $meta) {
-            $wpdb->insert($wpdb->postmeta, array(
-                'post_id'    => $revision_id,
-                'meta_key'   => $meta->meta_key,
-                'meta_value' => $meta->meta_value,
-            ));
-        }
-
-        $target_post_id = $revision_id;
-    } else {
-        // Update the published post directly
-        $target_post_id = $item_id;
+        update_field('engraving', $engraving_options, $target_post_id);
     }
 
-    // Get hero from heroes post type where title is equal to $hero
-    $hero_post = get_page_by_title($hero, OBJECT, 'heroes');
-    $hero_id = $hero_post->ID;
-    delete_field('hero', $published_post);
-    $hero_relationship = get_field('hero', $published_post, false);
-    $hero_relationship[] = $hero_id;
+    error_log('4');
 
-    // Update the repeater field with the new row appended
+    // Update other fields
     update_field('max_level', 100, $target_post_id);
     update_field('rarity', $rarity, $target_post_id);
     update_field('weapon_type', $weapon_type, $target_post_id);
-    update_field('exclusive', $exclusive, $target_post_id);    
+    update_field('exclusive', $exclusive, $target_post_id);
     update_field('exclusive_effects', $exclusive_effects, $target_post_id);
     update_field('min_dps', $min_dps, $target_post_id);
     update_field('dps', $max_dps, $target_post_id);
@@ -130,13 +89,66 @@ function items_update_weapon($request) {
     update_field('weapon_skill_regen_time', $weapon_skill_regen_time, $target_post_id);
     update_field('weapon_skill_description', $weapon_skill_description, $target_post_id);
     update_field('weapon_skill_chain', $weapon_skill_chain, $target_post_id);
-    update_field('main_options', $main_option, $target_post_id);
-    update_field('sub_options', $sub_option, $target_post_id);
     update_field('lb5_option', $limit_break_5_option, $target_post_id);
     update_field('lb5_value', $limit_break_5_value, $target_post_id);
-    update_field('engraving', $engraving_options, $target_post_id);
     update_field('max_lines', $max_lines, $target_post_id);
-    update_field('hero', $hero_relationship, $target_post_id);
-    
+
+    error_log('5');
+
     return array('success' => true, 'version' => '1.0.0');
+}
+
+// Helper function to process repeater fields
+function process_repeater_field($data, $field_name, $post_id) {
+    // Initialize the repeater field if it doesn't exist
+    if (empty(get_field($field_name, $post_id))) {
+        update_field($field_name, [], $post_id);
+    }
+
+    // Delete existing rows to avoid duplication
+    delete_field($field_name, $post_id);
+
+    if (!is_array($data) || empty($data)) {
+        error_log("No valid data provided for $field_name");
+        return;
+    }
+
+    foreach ($data as $index => $row) {
+        error_log("Processing row $index for $field_name: " . print_r($row, true));
+
+        // Ensure 'stat' is a string and not an array
+        $stat_value = is_array($row['stat']) ? $row['stat'][0] : $row['stat'];
+
+        // Prepare the row data
+        $prepared_row = [
+            'stat' => (string)$stat_value,
+            'is_range' => !empty($row['is_range']) ? '1' : '0',
+            'value' => (string)($row['value'] ?? '0'),
+            'minimum_value' => (string)($row['minimum_value'] ?? '0'),
+            'maximum_value' => (string)($row['maximum_value'] ?? '0'),
+        ];
+
+        error_log("Prepared row $index: " . print_r($prepared_row, true));
+
+        // Add row to the repeater field
+        if (!add_row($field_name, $prepared_row, $post_id)) {
+            error_log("Failed to add row $index to $field_name");
+        }
+    }
+}
+
+// Helper function to create a revision
+function create_revision($post) {
+    global $wpdb;
+
+    $post_data = array(
+        'post_author' => get_current_user_id(),
+        'post_date'   => current_time('mysql'),
+        'post_title'  => $post->post_title,
+        'post_status' => 'pending',
+        'post_type'   => $post->post_type,
+    );
+
+    $wpdb->insert($wpdb->posts, $post_data);
+    return $wpdb->insert_id;
 }
