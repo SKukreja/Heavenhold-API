@@ -19,10 +19,11 @@ function heroes_update_bio($request) {
     $species = $request->get_param('species');
     $role = $request->get_param('role');
     $element = $request->get_param('element');
+    $rarity = $request->get_param('rarity');
     $confirmed = $request->get_param('confirmed');
 
     // Validate inputs
-    if (empty($hero_id) || empty($age) || empty($species) || empty($role) || empty($element) || empty($height) || empty($weight)) {
+    if (empty($hero_id) || empty($age) || empty($species) || empty($role) || empty($element) || empty($height) || empty($weight) || empty($rarity)) {
         return new WP_Error('invalid_data', 'Hero ID and bio data are required', array('status' => 400));
     }
 
@@ -92,6 +93,7 @@ function heroes_update_bio($request) {
     update_field('bio_fields_age', $age, $target_post_id);    
     update_field('bio_fields_species', $species, $target_post_id);
     update_field('bio_fields_role', $role, $target_post_id);
+    update_field('bio_fields_rarity', $rarity, $target_post_id);
     update_field('bio_fields_element', $element, $target_post_id);
 
     return array('success' => true, 'post_id' => $target_post_id, 'version' => '1.0.0');
