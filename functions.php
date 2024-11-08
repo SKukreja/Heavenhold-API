@@ -113,6 +113,197 @@ function rank_stats() {
 
 add_action('save_post_heroes', 'rank_stats', 10, 1);
 
+add_action( 'graphql_response_headers_to_send', function( $headers ) {
+    // Specify the allowed origin(s)
+    $allowed_origins = [
+        'https://next.heavenhold.com', // Replace with your Next.js app domain
+    ];
+
+    // Get the Origin header from the request
+    $origin = get_http_origin();
+
+    if ( in_array( $origin, $allowed_origins ) ) {
+        $headers['Access-Control-Allow-Origin'] = $origin;
+        $headers['Access-Control-Allow-Credentials'] = 'true';
+        $headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+        $headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+    }
+
+    return $headers;
+} );
+
+add_action( 'init', function() {
+    // Handle OPTIONS requests
+    if ( 'OPTIONS' === $_SERVER['REQUEST_METHOD'] && isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+        $allowed_origins = [
+            'https://next.heavenhold.com', // Replace with your Next.js app domain
+        ];
+
+        if ( in_array( $_SERVER['HTTP_ORIGIN'], $allowed_origins ) ) {
+            header( 'Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN'] );
+            header( 'Access-Control-Allow-Credentials: true' );
+            header( 'Access-Control-Allow-Methods: POST, OPTIONS' );
+            header( 'Access-Control-Allow-Headers: Content-Type, Authorization' );
+            header( 'Access-Control-Max-Age: 86400' );
+            exit;
+        }
+    }
+}, 0 );
+
+add_action('wp_login', 'redirect_after_login', 10, 2);
+
+function redirect_after_login($user_login, $user) {
+    // Generate a secure random token
+    $token = bin2hex(random_bytes(32));
+    $expires_at = time() + 7200; // Token valid for 5 minutes
+
+    // Store the token, user ID, and expiration in the database
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'login_tokens';
+
+    // Create the table if it doesn't exist
+    $charset_collate = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        token VARCHAR(64) PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        expires_at INT NOT NULL
+    ) $charset_collate;";
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+
+    // Insert the token into the table
+    $wpdb->insert($table_name, array(
+        'token' => $token,
+        'user_id' => $user->ID,
+        'expires_at' => $expires_at,
+    ));
+
+    // Redirect to Next.js login endpoint with the token
+    $redirect_url = 'https://next.heavenhold.com/api/auth/login?token=' . urlencode($token);
+    wp_redirect($redirect_url);
+    exit;
+}
+
+// functions.php
+
+add_action('rest_api_init', function () {
+    register_rest_route('custom/v1', '/validate-token', array(
+        'methods' => 'POST',
+        'callback' => 'validate_login_token',
+        'permission_callback' => '__return_true', // Allow public access
+    ));
+});
+
+function validate_login_token(WP_REST_Request $request) {
+    $token = sanitize_text_field($request->get_param('token'));
+
+    if (!$token) {
+        return new WP_Error('missing_token', 'Token is required', array('status' => 400));
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'login_tokens';
+
+    // Clean up expired tokens
+    $current_time = time();
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM $table_name WHERE expires_at < %d",
+        $current_time
+    ));
+
+    // Retrieve the token record
+    $record = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE token = %s",
+        $token
+    ));
+
+    if (!$record) {
+        return new WP_Error('invalid_token', 'Invalid or expired token', array('status' => 400));
+    }
+
+    // Retrieve user data
+    $user = get_user_by('ID', $record->user_id);
+
+    if (!$user) {
+        return new WP_Error('user_not_found', 'User not found', array('status' => 404));
+    }
+
+    // Delete the token after use to prevent reuse
+    $wpdb->delete($table_name, array('token' => $token));
+
+    // Return user data
+    return array(
+        'user_id'    => $user->ID,
+        'user_email' => $user->user_email,
+        'user_login' => $user->user_login,
+    );
+}
+// Hook to customize the login page's appearance
+add_action('login_enqueue_scripts', 'custom_login_style');
+function custom_login_style() {
+    // Add your custom styles here
+    echo '<style>
+        /* Custom styles for the login page */
+        body.login {
+            background-color: #f5f5f5;
+        }
+        .login h1 a {
+            background-image: url("path-to-your-logo-image");
+            width: 320px;
+            height: 65px;
+            background-size: contain;
+        }
+    </style>';
+}
+
+// Hook to handle redirection and token generation if the user is logged in
+add_action('login_init', 'redirect_logged_in_user');
+function redirect_logged_in_user() {
+    if (is_user_logged_in()) {
+        // Generate a secure token and redirect
+        generate_token_and_redirect();
+        exit;
+    }
+}
+
+/**
+ * Function to generate a secure token and redirect to Next.js site
+ */
+function generate_token_and_redirect() {
+    // Get the current user
+    $user = wp_get_current_user();
+
+    // Generate a secure random token
+    $token = bin2hex(random_bytes(32));
+    $expires_at = time() + 7200; // Token valid for 2 hours
+
+    // Store the token, user ID, and expiration in the database
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'login_tokens';
+
+    // Create the table if it doesn't exist
+    $charset_collate = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        token VARCHAR(64) PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        expires_at INT NOT NULL
+    ) $charset_collate;";
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+
+    // Insert the token into the table
+    $wpdb->insert($table_name, array(
+        'token' => $token,
+        'user_id' => $user->ID,
+        'expires_at' => $expires_at,
+    ));
+
+    // Redirect to Next.js login endpoint with the token
+    $redirect_url = 'https://next.heavenhold.com/api/auth/login?token=' . urlencode($token);
+    wp_redirect($redirect_url);
+    exit;
+}
+
 
 
 /*

@@ -11,5 +11,5 @@
  *
  * @package heavenhold
  */
-wp_redirect(admin_url());
+get_header();
 exit;
