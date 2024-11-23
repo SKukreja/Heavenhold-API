@@ -54,17 +54,11 @@ function items_update_weapon($request) {
 
     $target_post_id = $confirmed ? $item_id : create_revision($published_post);
 
-    error_log('1');
-
     // Process Main Options
     process_repeater_field($main_option, 'main_options', $target_post_id);
 
-    error_log('2');
-
     // Process Sub Options
     process_repeater_field($sub_option, 'sub_stats', $target_post_id);
-
-    error_log('3');
 
     // Handle Engraving Options
     if (isset($engraving_options)) {
@@ -73,8 +67,6 @@ function items_update_weapon($request) {
         }
         update_field('engraving', $engraving_options, $target_post_id);
     }
-
-    error_log('4');
 
     // Update other fields
     update_field('max_level', 100, $target_post_id);
@@ -92,8 +84,6 @@ function items_update_weapon($request) {
     update_field('lb5_option', $limit_break_5_option, $target_post_id);
     update_field('lb5_value', $limit_break_5_value, $target_post_id);
     update_field('max_lines', $max_lines, $target_post_id);
-
-    error_log('5');
 
     return array('success' => true, 'version' => '1.0.0');
 }
@@ -135,20 +125,4 @@ function process_repeater_field($data, $field_name, $post_id) {
             error_log("Failed to add row $index to $field_name");
         }
     }
-}
-
-// Helper function to create a revision
-function create_revision($post) {
-    global $wpdb;
-
-    $post_data = array(
-        'post_author' => get_current_user_id(),
-        'post_date'   => current_time('mysql'),
-        'post_title'  => $post->post_title,
-        'post_status' => 'pending',
-        'post_type'   => $post->post_type,
-    );
-
-    $wpdb->insert($wpdb->posts, $post_data);
-    return $wpdb->insert_id;
 }

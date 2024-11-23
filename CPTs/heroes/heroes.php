@@ -14,7 +14,9 @@ class Heroes {
       'singular_name'         => _x( 'Hero', 'Post Type Singular Name', 'heavenhold' ),
       'menu_name'             => __( 'Heroes', 'heavenhold' ),
       'name_admin_bar'        => __( 'Heroes', 'heavenhold' ),
-      'all_items'             => __( 'See All', 'heavenhold' )
+      'all_items'             => __( 'See All', 'heavenhold' ),
+      'add_new'               => __( 'Add Hero', 'heavenhold' ),
+      'add_new_item'          => __( 'Add New Hero', 'heavenhold' )
     );
 
     $args = array(

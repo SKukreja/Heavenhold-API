@@ -14,7 +14,9 @@ class Teams {
       'singular_name'         => _x( 'Team', 'Post Type Singular Name', 'heavenhold' ),
       'menu_name'             => __( 'Teams', 'heavenhold' ),
       'name_admin_bar'        => __( 'Teams', 'heavenhold' ),
-      'all_items'             => __( 'See All', 'heavenhold' )
+      'all_items'             => __( 'See All', 'heavenhold' ),
+      'add_new'               => __( 'Add Team', 'heavenhold' ),
+      'add_new_item'          => __( 'Add New Team', 'heavenhold' )
     );
 
     $args = array(
@@ -22,7 +24,6 @@ class Teams {
       'description'           => __( 'Teams', 'heavenhold' ),
       'labels'                => $labels,
       'supports'              => array('title', 'excerpt', 'revisions'),
-      'taxonomies'            => array('team_categories'),
       'hierarchical'          => false,
       'public'                => true,
       'show_ui'               => true,

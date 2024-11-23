@@ -14,7 +14,9 @@ class Items {
       'singular_name'         => _x( 'Item', 'Post Type Singular Name', 'heavenhold' ),
       'menu_name'             => __( 'Equipment', 'heavenhold' ),
       'name_admin_bar'        => __( 'Equipment', 'heavenhold' ),
-      'all_items'             => __( 'See All', 'heavenhold' )
+      'all_items'             => __( 'See All', 'heavenhold' ),
+      'add_new'               => __( 'Add Item', 'heavenhold' ),
+      'add_new_item'          => __( 'Add New Item', 'heavenhold' )
     );
 
     $args = array(

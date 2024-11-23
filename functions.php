@@ -12,26 +12,31 @@ include_once(dirname(__FILE__) . '/CPTs/items/_init.php');
 include_once(dirname(__FILE__) . '/CPTs/teams/_init.php');
 include_once(dirname(__FILE__) . '/CPTs/collections/_init.php');
 include_once(dirname(__FILE__) . '/CPTs/guides/_init.php');
+include_once(dirname(__FILE__) . '/CPTs/blog/_init.php');
 include_once(dirname(__FILE__) . '/CPTs/banners/_init.php'); 
 add_post_type_support( 'heroes', array('title', 'thumbnail', 'comments') );
 add_post_type_support( 'items', array('title', 'thumbnail', 'comments') );
 add_post_type_support( 'articles', array('title', 'thumbnail', 'editor', 'comments') );
 add_post_type_support( 'guides', array('title', 'thumbnail', 'editor', 'comments') );
+add_post_type_support( 'blog', array('title', 'thumbnail', 'editor', 'comments') );
 add_post_type_support( 'banners', array('title', 'thumbnail', 'comments') );
 
 require_once dirname(__FILE__) . '/includes/graphql-acf-fields.php';
+require_once dirname(__FILE__) . '/endpoints/update-costume.php';
+require_once dirname(__FILE__) . '/endpoints/update-super-illustration.php';
 require_once dirname(__FILE__) . '/endpoints/update-story.php';
 require_once dirname(__FILE__) . '/endpoints/update-portrait.php';
 require_once dirname(__FILE__) . '/endpoints/update-bio.php';
 require_once dirname(__FILE__) . '/endpoints/update-illustration.php';
 require_once dirname(__FILE__) . '/endpoints/update-stats.php';
 require_once dirname(__FILE__) . '/endpoints/update-weapon.php';
+require_once dirname(__FILE__) . '/endpoints/update-hero-review.php';
 require_once dirname(__FILE__) . '/endpoints/add-new-hero.php';
 require_once dirname(__FILE__) . '/endpoints/add-new-item.php';
 
-add_filter( 'graphql_connection_max_query_amount', function ( int $max_amount, $source, array $args, $context, $info ) {
-	return 2000;
-}, 10, 5 );
+// add_filter( 'graphql_connection_max_query_amount', function ( int $max_amount, $source, array $args, $context, $info ) {
+// 	return 2000;
+// }, 10, 5 );
 
 function rank_stats() {
 
@@ -303,6 +308,23 @@ function generate_token_and_redirect() {
     wp_redirect($redirect_url);
     exit;
 }
+
+// Helper function to create a revision
+function create_revision($post) {
+    global $wpdb;
+
+    $post_data = array(
+        'post_author' => get_current_user_id(),
+        'post_date'   => current_time('mysql'),
+        'post_title'  => $post->post_title,
+        'post_status' => 'pending',
+        'post_type'   => $post->post_type,
+    );
+
+    $wpdb->insert($wpdb->posts, $post_data);
+    return $wpdb->insert_id;
+}
+
 
 
 

@@ -14,7 +14,9 @@ class Collections {
       'singular_name'         => _x( 'Collection', 'Post Type Singular Name', 'heavenhold' ),
       'menu_name'             => __( 'Collections', 'heavenhold' ),
       'name_admin_bar'        => __( 'Collections', 'heavenhold' ),
-      'all_items'             => __( 'See All', 'heavenhold' )
+      'all_items'             => __( 'See All', 'heavenhold' ),
+      'add_new'               => __( 'Add Collection', 'heavenhold' ),
+      'add_new_item'          => __( 'Add New Collection', 'heavenhold' )
     );
 
     $args = array(
