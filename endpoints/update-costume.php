@@ -74,7 +74,7 @@ function items_update_costume($request) {
     if (isset($item_type)) update_field('costume_weapon_type', $item_type, $target_post_id);
     if (isset($hero_id)) update_field('hero', $hero_id, $target_post_id);
     // replace item_category taxonomies set to the one with the slug 'costume' if $item_type is null and $hero_id is set, otherwise set it the one with the slug 'equipment-costume'
-    $item_category = isset($item_type) ? 'equipment-costume' : 'costume';
+    $item_category = isset($item_type) ? 'equipment-costume' : 'costumes';
     wp_set_post_terms($target_post_id, $item_category, 'item_category');
 
     return array('success' => true, 'version' => '1.0.0');
