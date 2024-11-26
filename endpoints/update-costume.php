@@ -8,17 +8,17 @@ add_action('rest_api_init', function () {
 });
 
 function items_update_costume($request) {
-    global $wpdb;
-
     // Get parameters from the request
-    $item_id = $request->get_param('item_id');
+    $item_id   = $request->get_param('item_id');
     $item_type = $request->get_param('item_type');
-    $hero_id = $request->get_param('hero_id');
-    $image = $request->get_file_params('image');
+    $name      = $request->get_param('item_name');
+    $hero_id   = $request->get_param('hero_id');
+    $image     = $request->get_file_params('image');
     $confirmed = $request->get_param('confirmed');
 
-    if (!isset($item_id) || (!isset($item_type) && !isset($hero_id))) {
-        return new WP_Error('invalid_data', 'Item ID and item type or hero ID are required', array('status' => 400));
+    // Check if item_type and hero_id are empty
+    if (empty($item_type) && empty($hero_id)) {
+        return new WP_Error('invalid_data', 'Item type or hero ID are required', array('status' => 400));
     }
 
     // Retrieve or create the post
@@ -28,11 +28,15 @@ function items_update_costume($request) {
             'post_author' => get_current_user_id(),
             'post_date'   => current_time('mysql'),
             'post_title'  => $name,
+            'post_name'   => sanitize_title($name),
             'post_status' => 'publish',
             'post_type'   => 'items',
         );
-        $wpdb->insert($wpdb->posts, $post_data);
-        $item_id = $wpdb->insert_id;
+        $item_id = wp_insert_post($post_data);
+        if (is_wp_error($item_id)) {
+            error_log('wp_insert_post error: ' . $item_id->get_error_message());
+            return new WP_Error('insert_error', 'Could not create new post', array('status' => 500));
+        }
         $published_post = get_post($item_id);
     }
 
@@ -49,6 +53,7 @@ function items_update_costume($request) {
     );
 
     if (isset($uploaded_file['error'])) {
+        error_log('wp_handle_upload error: ' . $uploaded_file['error']);
         return new WP_Error('upload_error', $uploaded_file['error'], array('status' => 500));
     }
 
@@ -59,9 +64,10 @@ function items_update_costume($request) {
         'post_title'     => basename($uploaded_file['file']),
         'post_content'   => '',
         'post_status'    => 'inherit'
-    ), $uploaded_file['file'], $target_post_id); // Attach to the correct post
+    ), $uploaded_file['file'], $target_post_id);
 
     if (is_wp_error($attachment_id)) {
+        error_log('wp_insert_attachment error: ' . $attachment_id->get_error_message());
         return new WP_Error('attachment_error', $attachment_id->get_error_message(), array('status' => 500));
     }
 
@@ -71,11 +77,32 @@ function items_update_costume($request) {
 
     // Update other fields
     update_field('image', $attachment_id, $target_post_id);
-    if (isset($item_type)) update_field('costume_weapon_type', $item_type, $target_post_id);
-    if (isset($hero_id)) update_field('hero', $hero_id, $target_post_id);
-    // replace item_category taxonomies set to the one with the slug 'costume' if $item_type is null and $hero_id is set, otherwise set it the one with the slug 'equipment-costume'
-    $item_category = isset($item_type) ? 'equipment-costume' : 'costumes';
-    wp_set_post_terms($target_post_id, $item_category, 'item_category');
+    if (!empty($item_type)) update_field('costume_weapon_type', $item_type, $target_post_id);
+    if (!empty($hero_id)) update_field('hero', $hero_id, $target_post_id);
+
+    // Replace item_categories taxonomy terms
+    $item_category_slug = !empty($item_type) ? 'equipment-costume' : 'costumes';
+    $taxonomy = 'item_categories'; // Correct taxonomy name
+
+    // Get or create the term
+    $term = get_term_by('slug', $item_category_slug, $taxonomy);
+    if (!$term || is_wp_error($term)) {
+        $new_term = wp_insert_term($item_category_slug, $taxonomy, array('slug' => $item_category_slug));
+        if (is_wp_error($new_term)) {
+            error_log('wp_insert_term error: ' . $new_term->get_error_message());
+            return new WP_Error('term_error', 'Could not create item category term', array('status' => 500));
+        }
+        $term_id = $new_term['term_id'];
+    } else {
+        $term_id = $term->term_id;
+    }
+
+    // Set the term to the post
+    $result = wp_set_post_terms($target_post_id, array($term_id), $taxonomy, false);
+    if (is_wp_error($result)) {
+        error_log('wp_set_post_terms error: ' . $result->get_error_message());
+        return new WP_Error('term_set_error', 'Could not set item category term', array('status' => 500));
+    }
 
     return array('success' => true, 'version' => '1.0.0');
 }
